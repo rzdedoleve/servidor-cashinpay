@@ -2,13 +2,15 @@ const express = require('express');
 const cors = require('cors');
 
 const app = express();
-app.use(express.json());
+
+// O CORS precisa vir antes para liberar o acesso do seu frontend
 app.use(cors());
+app.use(express.json());
 
 // Chave da CashInPay fornecida
 const CASHINPAY_API_KEY = 'sk_live_81f5f181f0d7df1aa84a3d0ef77e63b1ca1731cd';
 
-app.post('/api/criar-pix', async (req, res) => {
+app.post('/pix', async (req, res) => {
     try {
         const orderData = req.body;
 
@@ -23,7 +25,7 @@ app.post('/api/criar-pix', async (req, res) => {
                 amount: 89.90,
                 external_reference: "KIT_DRYFIT_" + Date.now(),
                 payer: {
-                    name: orderData.name,
+                    name: orderData.name || "Cliente",
                     phone: orderData.whatsapp ? orderData.whatsapp.replace(/\D/g, '') : ''
                 }
             })
@@ -31,25 +33,25 @@ app.post('/api/criar-pix', async (req, res) => {
 
         const data = await response.json();
 
-        if (response.ok && (data.success || data.qr_code)) {
+        if (response.ok && (data.success || data.qr_code || data.pix_copia_e_cola)) {
             const qrCodeText = data.qr_code || data.pix_copia_e_cola;
             const qrCodeImage = data.qr_code_base64 || `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrCodeText)}`;
 
             return res.json({
                 success: true,
-                qr_code: qrCodeText,
-                qr_code_base64: qrCodeImage
+                qrcode: qrCodeImage,
+                copiaECola: qrCodeText
             });
         } else {
             return res.status(400).json({ 
                 success: false, 
-                message: data.message || 'Erro ao gerar o PIX na CashInPay' 
+                error: data.message || 'Erro ao gerar o PIX na CashInPay' 
             });
         }
 
     } catch (error) {
         console.error('Erro no servidor:', error);
-        return res.status(500).json({ success: false, message: 'Erro interno no servidor' });
+        return res.status(500).json({ success: false, error: 'Erro interno no servidor' });
     }
 });
 
