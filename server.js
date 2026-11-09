@@ -13,8 +13,8 @@ app.post('/gerar-pix', async (req, res) => {
     try {
         const { valor, cliente, item } = req.body;
 
-        // Requisição para a API oficial da CashInPay
-        const response = await axios.post('https://api.cashinpay.com.br/api/v1/pix/create', {
+        // Requisição para a API oficial da CashInPay usando o endpoint correto
+        const response = await axios.post('https://api.cashinpay.com.br/api/v1/transactions', {
             amount: valor,
             payer: {
                 name: cliente.nome,
@@ -30,13 +30,16 @@ app.post('/gerar-pix', async (req, res) => {
         });
 
         return res.json({
-            qrcode: response.data.pix_code || response.data.qrcode,
-            qr_code_image: response.data.qr_code_image || response.data.imagem_base64
+            qrcode: response.data.pix_code || response.data.qrcode || response.data.copy_paste,
+            qr_code_image: response.data.qr_code_image || response.data.imagem_base64 || response.data.qr_code
         });
 
     } catch (error) {
         console.error('Erro ao gerar PIX:', error.response?.data || error.message);
-        return res.status(500).json({ error: 'Erro ao processar pagamento no servidor.' });
+        return res.status(500).json({ 
+            error: 'Erro ao processar pagamento no servidor.',
+            detalhes: error.response?.data || error.message 
+        });
     }
 });
 
